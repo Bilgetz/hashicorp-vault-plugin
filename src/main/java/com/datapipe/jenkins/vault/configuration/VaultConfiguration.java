@@ -16,6 +16,8 @@ import hudson.model.Item;
 import hudson.security.ACL;
 import hudson.util.ListBoxModel;
 import hudson.util.ListBoxModel.Option;
+
+import java.io.File;
 import java.io.Serializable;
 import java.util.List;
 import org.apache.commons.lang.StringUtils;
@@ -40,6 +42,7 @@ public class VaultConfiguration extends AbstractDescribableImpl<VaultConfigurati
 
     private VaultCredential vaultCredential;
 
+
     private Boolean failIfNotFound = DescriptorImpl.DEFAULT_FAIL_NOT_FOUND;
 
     private Boolean skipSslVerification = DescriptorImpl.DEFAULT_SKIP_SSL_VERIFICATION;
@@ -55,6 +58,9 @@ public class VaultConfiguration extends AbstractDescribableImpl<VaultConfigurati
     private Boolean disableChildPoliciesOverride;
 
     private Integer timeout = DEFAULT_TIMEOUT;
+    private boolean reverseProxy;
+    private String reverseProxySslTwoWayKeyFile;
+    private String reverseProxySslTwoWayCertFile;
 
     @DataBoundConstructor
     public VaultConfiguration() {
@@ -80,6 +86,9 @@ public class VaultConfiguration extends AbstractDescribableImpl<VaultConfigurati
         this.policies = toCopy.policies;
         this.disableChildPoliciesOverride = toCopy.disableChildPoliciesOverride;
         this.timeout = toCopy.timeout;
+        this.reverseProxy = toCopy.reverseProxy;
+        this.reverseProxySslTwoWayKeyFile = toCopy.reverseProxySslTwoWayKeyFile;
+        this.reverseProxySslTwoWayCertFile = toCopy.reverseProxySslTwoWayCertFile;
     }
 
     public VaultConfiguration mergeWithParent(VaultConfiguration parent) {
@@ -239,6 +248,34 @@ public class VaultConfiguration extends AbstractDescribableImpl<VaultConfigurati
         return RETRY_INTERVAL_MILLISECONDS;
     }
 
+
+    public boolean isReverseProxy() {
+        return reverseProxy;
+    }
+
+    @DataBoundSetter
+    public void setReverseProxy(boolean reverseProxy) {
+        this.reverseProxy = reverseProxy;
+    }
+
+    public String getReverseProxySslTwoWayKeyFile() {
+        return reverseProxySslTwoWayKeyFile;
+    }
+
+    @DataBoundSetter
+    public void setReverseProxySslTwoWayKeyFile(String reverseProxySslTwoWayKeyFile) {
+        this.reverseProxySslTwoWayKeyFile = reverseProxySslTwoWayKeyFile;
+    }
+
+    public String getReverseProxySslTwoWayCertFile() {
+        return reverseProxySslTwoWayCertFile;
+    }
+
+    @DataBoundSetter
+    public void setReverseProxySslTwoWayCertFile(String reverseProxySslTwoWayCertFile) {
+        this.reverseProxySslTwoWayCertFile = reverseProxySslTwoWayCertFile;
+    }
+
     @Extension
     public static class DescriptorImpl extends Descriptor<VaultConfiguration> {
 
@@ -278,6 +315,16 @@ public class VaultConfiguration extends AbstractDescribableImpl<VaultConfigurati
         try {
             if (this.getSkipSslVerification()) {
                 vaultConfig.sslConfig(new SslConfig().verify(false).build());
+            }
+
+            if(this.isReverseProxy() && StringUtils.isNotEmpty(this.getReverseProxySslTwoWayCertFile()) && StringUtils.isNotEmpty(this.getReverseProxySslTwoWayKeyFile())) {
+                SslConfig sslConfig = vaultConfig.getSslConfig();
+                if(sslConfig == null) {
+                    sslConfig = new SslConfig();
+                    vaultConfig.sslConfig(sslConfig);
+                }
+                sslConfig.clientKeyPemFile(new File(this.getReverseProxySslTwoWayKeyFile()));
+                sslConfig.clientPemFile(new File(this.getReverseProxySslTwoWayCertFile()));
             }
 
             if (StringUtils.isNotEmpty(this.getVaultNamespace())) {

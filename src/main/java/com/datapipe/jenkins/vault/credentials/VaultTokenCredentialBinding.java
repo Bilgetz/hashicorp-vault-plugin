@@ -1,5 +1,6 @@
 package com.datapipe.jenkins.vault.credentials;
 
+import com.bettercloud.vault.SslConfig;
 import com.bettercloud.vault.Vault;
 import com.bettercloud.vault.VaultConfig;
 import com.bettercloud.vault.VaultException;
@@ -11,6 +12,8 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+
+import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -35,6 +38,8 @@ public class VaultTokenCredentialBinding extends MultiBinding<AbstractVaultToken
     private final String vaultAddr;
     private String vaultNamespace = "";
     private String namespaceVariable = DEFAULT_VAULT_NAMESPACE_VARIABLE_NAME;
+    private String reverseProxySslTwoWayKeyFile;
+    private String reverseProxySslTwoWayCertFile;
 
     /**
      * @param addrVariable if {@code null}, {@value DEFAULT_VAULT_ADDR_VARIABLE_NAME} will be used.
@@ -74,6 +79,16 @@ public class VaultTokenCredentialBinding extends MultiBinding<AbstractVaultToken
         this.namespaceVariable = StringUtils.defaultIfBlank(namespaceVariable, DEFAULT_VAULT_NAMESPACE_VARIABLE_NAME);
     }
 
+    @DataBoundSetter
+    public void setReverseProxySslTwoWayKeyFile(String reverseProxySslTwoWayKeyFile) {
+        this.reverseProxySslTwoWayKeyFile = reverseProxySslTwoWayKeyFile;
+    }
+
+    @DataBoundSetter
+    public void setReverseProxySslTwoWayCertFile(String reverseProxySslTwoWayCertFile) {
+        this.reverseProxySslTwoWayCertFile = reverseProxySslTwoWayCertFile;
+    }
+
     @NonNull
     public String getAddrVariable() {
         return addrVariable;
@@ -88,6 +103,16 @@ public class VaultTokenCredentialBinding extends MultiBinding<AbstractVaultToken
     public String getVaultAddr() {
         return vaultAddr;
     }
+
+    @Nullable
+    public String getReverseProxySslTwoWayKeyFile() {
+        return reverseProxySslTwoWayKeyFile;
+    }
+    @Nullable
+    public String getReverseProxySslTwoWayCertFile() {
+        return reverseProxySslTwoWayCertFile;
+    }
+
 
     @Override
     protected Class<AbstractVaultTokenCredential> type() {
@@ -113,6 +138,15 @@ public class VaultTokenCredentialBinding extends MultiBinding<AbstractVaultToken
             VaultConfig config = new VaultConfig().address(vaultAddr);
             if (StringUtils.isNotEmpty(vaultNamespace)) {
                 config.nameSpace(vaultNamespace);
+            }
+            if(StringUtils.isNotEmpty(this.getReverseProxySslTwoWayCertFile()) && StringUtils.isNotEmpty(this.getReverseProxySslTwoWayKeyFile())) {
+                SslConfig sslConfig = config.getSslConfig();
+                if(sslConfig == null) {
+                    sslConfig = new SslConfig();
+                    config.sslConfig(sslConfig);
+                }
+                sslConfig.clientKeyPemFile(new File(this.getReverseProxySslTwoWayKeyFile()));
+                sslConfig.clientPemFile(new File(this.getReverseProxySslTwoWayCertFile()));
             }
             config.build();
 

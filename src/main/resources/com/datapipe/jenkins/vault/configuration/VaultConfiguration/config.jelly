@@ -32,5 +32,17 @@
     <f:entry title="Timeout" field="timeout">
       <f:number default="60" clazz="positive-number"/>
     </f:entry>
+    <f:block>
+      <table>
+        <f:optionalBlock field="reverseProxy" title="reverse Proxy ssl 2 way security" checked="${instance.reverseProxy}" inline="true">
+          <f:entry title="Ssl Two Key pem path" field="sslTwoWayKeyFile">
+            <f:textbox/>
+          </f:entry>
+          <f:entry title="Ssl Two Cert pem path" field="sslTwoWayCertFile">
+            <f:textbox/>
+          </f:entry>
+          </f:optionalBlock>
+      </table>
+    </f:block>
   </f:advanced>
 </j:jelly>
